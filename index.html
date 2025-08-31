@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>桜町区 山車ナビ</title>
   <style>
-    :root { --headerH: 50px; --footerH: 56px; }
+    :root { --headerH: 34px; --footerH: 56px; }
     html, body { height:100%; margin:0; }
     body { background:#000; overflow:hidden; color:#fff; }
 
     #map {
       width:100%;
       height: calc(100dvh - var(--headerH) - var(--footerH));
-      min-height: 320px;
       margin-top: var(--headerH);
       margin-bottom: var(--footerH);
-      background:#000;
     }
 
-    /* ヘッダー */
     .app-header{
       position:fixed; inset:0 0 auto 0; z-index:10;
       display:flex; align-items:center; justify-content:center;
@@ -27,13 +24,10 @@
     }
     .app-header img{
       height: calc(var(--headerH) - 6px);
-      width: auto;
-      max-width: 98vw;
-      object-fit: contain;
+      width: auto; max-width: 98vw; object-fit: contain;
       display: block;
     }
 
-    /* 右上：交通規制 */
     .ctrl{ position:fixed; right:8px; top: calc(var(--headerH) + 8px); z-index:11; }
     .reg-pill{
       background:#e91e63; color:#fff; text-align:center;
@@ -42,9 +36,12 @@
       cursor:pointer; user-select:none; white-space:nowrap;
     }
     .reg-drawer{
-      margin-top:8px; width:min(180px, 90vw);
-      background:#fff; color:#222; border:1px solid #bcd4ea; border-radius:10px;
-      box-shadow:0 4px 16px rgba(0,0,0,.18); padding:6px; font-size:12px; display:none;
+      margin-top:8px; width:10vw; max-width:180px; min-width:120px;
+      background: rgba(218,233,248,0.7);
+      border:1px solid #bcd4ea; border-radius:10px;
+      box-shadow:0 4px 16px rgba(0,0,0,.18);
+      padding:6px; font-size:12px; color:#222; display:none;
+      -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
       max-height: 60vh; overflow:auto;
     }
     .reg-drawer .title-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
@@ -59,25 +56,16 @@
     .slotbtn{ padding:5px; border:1px solid #b9cfe8; border-radius:8px; background:#fff; text-align:center; cursor:pointer; font-size:12px; }
     .slotbtn.active{ background:#5ea2ff; color:#fff; border-color:#5ea2ff; }
 
-    /* 左：経路図（新設） */
-    .route-ctrl{ position:fixed; left:8px; top: calc(var(--headerH) + 8px); z-index:11; }
-    .route-pill{
-      background:#0ea5e9; color:#fff; text-align:center;
-      font-size:13px; line-height:1; padding:5px 10px;
-      border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.25);
-      cursor:pointer; user-select:none; white-space:nowrap;
+    .layer-ctrl{
+      position:fixed; left:8px; top: calc(var(--headerH) + 8px); z-index:11;
+      display:grid; gap:8px;
+      background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,.18);
+      padding:4px; width:36px; place-items:center;
     }
-    .route-drawer{
-      margin-top:8px; width:min(200px, 92vw);
-      background:#fff; color:#222; border:1px solid #9bd8f4; border-radius:10px;
-      box-shadow:0 4px 16px rgba(0,0,0,.18); padding:6px; font-size:12px; display:none;
-      max-height: 60vh; overflow:auto;
-    }
-    .route-drawer .title-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
-    .route-drawer .title{ font-weight:700; font-size:13px; }
-    .route-drawer .close{ border:1px solid #67c4ea; background:#fff; padding:3px 8px; border-radius:8px; font-size:12px; cursor:pointer; }
+    .layer-btn{ width:28px; height:28px; object-fit:contain; cursor:pointer; }
+    .layer-btn.inactive{ filter: grayscale(100%); opacity:.55; }
 
-    /* 下：ボトムメニュー */
     .bottom-bar{
       position:fixed; inset:auto 0 0 0; height:var(--footerH); z-index:20;
       background:#000; color:#fff; display:grid; grid-template-columns:repeat(4,1fr);
@@ -92,29 +80,23 @@
     }
     .bottom-btn .ico{ width:38px; height:38px; object-fit:contain; }
 
-    /* InfoWindow 調整 */
     .gm-style .gm-style-iw-c{ padding:6px !important; }
     .iw { font:13px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif; color:#333; }
+    .iw-narrow { width: 168px; }
     .iw .title{ font-weight:700; font-size:13.5px; margin:0 0 4px; color:#202124; }
-    .iw .btn{
-      appearance:none; border:1px solid #dadce0; background:#fff; border-radius:999px;
-      padding:6px 10px; font-size:12px; cursor:pointer; margin-top:2px;
-      box-shadow:0 1px 2px rgba(0,0,0,.12);
-      display:inline-flex; align-items:center; gap:6px; text-decoration:none; color:#1a73e8;
-    }
+    .iw .status{ font-size:12px; margin:2px 0 6px; color:#555; }
 
-    #fail {
-      position:fixed; inset:auto 8px 64px 8px; z-index: 30; display:none;
-      background:#fffb; color:#000; border-radius:12px; padding:10px; font-size:13px;
-    }
+    .modal{ position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:30; }
+    .modal .box{ width:min(92vw,520px); background:#fff; border-radius:12px; padding:12px; color:#222; }
+    .modal .box h3{ margin:4px 0 8px; font-size:16px; }
+    .modal .box .close{ float:right; border:1px solid #ddd; background:#fff; border-radius:8px; padding:4px 10px; cursor:pointer; }
   </style>
 </head>
 <body>
   <header class="app-header">
-    <img src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/header-title.webp" alt="鹿嶋のご神幸">
+    <img src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/title.png" alt="鹿嶋のご神幸">
   </header>
 
-  <!-- 右上：交通規制 -->
   <div class="ctrl">
     <div class="reg-pill" id="regPill">交通規制</div>
     <aside class="reg-drawer" id="regDrawer" aria-hidden="true">
@@ -132,63 +114,56 @@
     </aside>
   </div>
 
-  <!-- 左：経路図 -->
-  <div class="route-ctrl">
-    <div class="route-pill" id="routePill">経路図</div>
-    <aside class="route-drawer" id="routeDrawer" aria-hidden="true">
-      <div class="title-row">
-        <div class="title">経路図</div>
-        <button id="routeClose" class="close" type="button">閉じる</button>
-      </div>
-      <div class="vstack">
-        <div id="rTab0831" class="tab">8/31</div>
-        <div id="rTab0901" class="tab">9/1</div>
-        <div id="rTab0902" class="tab">9/2</div>
-      </div>
-      <div style="margin:6px 0; color:#444;">日時を選ぶと経路（青線）が表示されます</div>
-      <div id="routeSlotList" class="slotlist"></div>
-    </aside>
+  <div class="layer-ctrl" id="layerCtrl" title="表示の切替">
+    <img src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/info.png"    id="btnInfo" class="layer-btn" title="インフォ">
+    <img src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/wc.png"      id="btnWC" class="layer-btn" title="トイレ">
+    <img src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/parking.png" id="btnPark" class="layer-btn" title="駐車場">
   </div>
 
   <div id="map"></div>
 
-  <!-- 下段メニュー -->
   <nav class="bottom-bar">
-    <button class="bottom-btn" id="bDashi" title="山車" type="button">
-      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/sakura.png" alt=""><span>山車</span>
+    <button class="bottom-btn" id="bDashi" type="button">
+      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/sakura.png" alt="">
+      <span>山車</span>
     </button>
-    <button class="bottom-btn" id="bTraffic" title="交通規制" type="button">
-      <img class="ico" id="icoTraffic" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/no_entry.png" alt=""><span>交通規制</span>
+    <button class="bottom-btn" id="bTraffic" type="button">
+      <img class="ico" id="icoTraffic" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/no_entry.png" alt="">
+      <span>交通規制</span>
     </button>
-    <button class="bottom-btn" id="bMyLoc" title="現在地" type="button">
-      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/myloc.svg" alt=""><span>現在地</span>
+    <button class="bottom-btn" id="bMyLoc" type="button">
+      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/myloc.svg" alt="">
+      <span>現在地</span>
     </button>
-    <button class="bottom-btn" id="bHelp" title="ヘルプ" type="button">
-      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/help.png" alt=""><span>ヘルプ</span>
+    <button class="bottom-btn" id="bHelp" type="button">
+      <img class="ico" src="https://gezasakuramachi-crypto.github.io/dashi-navi/mark/help.png" alt="">
+      <span>ヘルプ</span>
     </button>
   </nav>
 
-  <!-- ヘルプ -->
-  <div class="modal" id="helpModal" role="dialog" aria-modal="true" aria-hidden="true" style="display:none;">
-    <div class="box" style="width:min(92vw,520px); background:#fff; color:#222; border-radius:12px; padding:12px;">
-      <button id="helpClose" style="float:right; border:1px solid #ddd; background:#fff; border-radius:8px; padding:4px 10px; cursor:pointer;">閉じる</button>
-      <h3 style="margin:4px 0 8px; font-size:16px;">山車ナビの使い方</h3>
-      <div class="modal-content" style="max-height:80vh; overflow:auto; padding:16px;">
-        <pre style="white-space:pre-wrap; font-family:inherit; line-height:1.5; margin:0;">
-◆右上の「交通規制」：日時を選ぶと規制エリアを表示
-◆左の「経路図」　　：日時を選ぶと山車の経路（青線）を表示
-◆「山車」　　　　　：山車へパン（マークをタップで詳細）
-◆「現在地」　　　　：青点＋誤差円を表示
-        </pre>
+  <div class="modal" id="helpModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="box">
+      <button class="close" id="helpClose">閉じる</button>
+      <h3>山車ナビの使い方</h3>
+      <div>
+        ◆交通規制<br>
+        自動更新はリアルタイムの交通規制を表示します。<br>
+        日付と時間を選択すると、その日時の交通規制エリアが見れます。<br><br>
+        ◆左側アイコン<br>
+        ・インフォメーション<br>
+        ・トイレ<br>
+        ・駐車場<br>
+        の表示・非表示を切替できます。<br><br>
+        ◆下段メニュー<br>
+        桜→山車の現在地<br>
+        交通規制→交通規制エリア<br>
+        現在地→あなたの現在地<br>
+        ヘルプ→この画面<br>
       </div>
     </div>
   </div>
 
-  <div id="fail">地図の読み込みに失敗しました（APIキー/回線/課金設定をご確認ください）。</div>
-
   <script src="app.js"></script>
-  <!-- Google Maps（最後に読み込む） -->
-  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCExrqcE4MPmievjTlV8wFJrVtKcbKWqX8&callback=initMap&v=weekly&language=ja"
-          onerror="document.getElementById('fail').style.display='block'"></script>
+  <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCExrqcE4MPmievjTlV8wFJrVtKcbKWqX8&callback=initMap&v=weekly&language=ja"></script>
 </body>
 </html>
